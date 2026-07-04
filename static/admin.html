@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GetME! - Organizer</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand">
+      <span class="logo">GetME!</span>
+      <span class="tag">Organizer console</span>
+    </header>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <h2>Google Drive connection</h2>
+      <p class="lead" id="connLead">Connect the Google account that owns (or can view) the event photos.</p>
+      <div class="row">
+        <button class="btn" id="connectBtn">Connect Google Drive</button>
+        <button class="btn secondary hidden" id="disconnectBtn">Disconnect</button>
+      </div>
+      <div class="status" id="connStatus"></div>
+    </div>
+
+    <div class="card">
+      <h1>Process event photos</h1>
+      <p class="lead">Paste the Google Drive folder link with your high-quality event photos.
+        GetME! streams each photo, detects faces, and groups them so guests can find themselves.</p>
+
+      <label for="adminToken">Admin token</label>
+      <input type="password" id="adminToken" placeholder="Your admin token" />
+
+      <label for="driveLink">Google Drive folder link</label>
+      <input type="text" id="driveLink" placeholder="https://drive.google.com/drive/folders/..." />
+
+      <div class="row">
+        <button class="btn" id="startBtn">Start processing</button>
+      </div>
+
+      <div class="progress" id="progress"><div id="progressBar"></div></div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <p class="foot">Powered by GetME! &middot; <a class="link" href="/">Guest page</a></p>
+  </div>
+
+  <script src="/static/admin.js"></script>
+</body>
+</html>

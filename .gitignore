@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+credentials.json
+token.json
+service_account.json
+oauth_client.json
+
+# App data
+*.db
+*.sqlite3
+data/
+uploads/
+
+# Local test photos (not for the repo)
+bhogipallu/
+
+# Editor / local tooling
+.letta/
+
+# DeepFace model cache
+.deepface/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

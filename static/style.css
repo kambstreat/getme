@@ -1,0 +1,180 @@
+:root {
+  --bg: #0b0d12;
+  --panel: #151922;
+  --panel-2: #1c2230;
+  --text: #e8ecf3;
+  --muted: #9aa6b8;
+  --brand: #6c8cff;
+  --brand-2: #57e0c8;
+  --danger: #ff6b6b;
+  --ok: #57e0a0;
+  --radius: 16px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: radial-gradient(1200px 600px at 80% -10%, #1a2540 0%, var(--bg) 55%) fixed;
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+}
+
+header.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tag { color: var(--muted); font-size: 14px; }
+
+.card {
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+
+h1 { font-size: 30px; margin: 0 0 8px; letter-spacing: -0.5px; }
+h2 { font-size: 18px; margin: 0 0 16px; }
+p.lead { color: var(--muted); margin: 0 0 24px; line-height: 1.5; }
+
+label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+
+input[type="text"], input[type="password"] {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font-size: 15px;
+  margin-bottom: 16px;
+}
+
+input:focus { outline: 2px solid var(--brand); border-color: transparent; }
+
+.btn {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 13px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0b0d12;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  transition: transform 0.05s ease, opacity 0.2s ease;
+}
+.btn:hover { opacity: 0.92; }
+.btn:active { transform: translateY(1px); }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.btn.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dropzone {
+  border: 2px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.dropzone:hover, .dropzone.drag { border-color: var(--brand); background: rgba(108, 140, 255, 0.06); }
+.dropzone strong { color: var(--text); }
+
+.camera-actions { margin-bottom: 8px; }
+.camera-actions .btn { flex: 1; min-width: 140px; }
+
+.preview {
+  margin-top: 18px;
+  display: none;
+  text-align: center;
+}
+.preview img {
+  max-height: 220px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status {
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--muted);
+  min-height: 20px;
+}
+.status.ok { color: var(--ok); }
+.status.err { color: var(--danger); }
+
+.progress {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 14px 0;
+  display: none;
+}
+.progress > div {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  transition: width 0.3s ease;
+}
+
+.result-banner {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: rgba(87, 224, 160, 0.12);
+  border: 1px solid rgba(87, 224, 160, 0.3);
+  margin: 20px 0;
+  font-weight: 600;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+.gallery img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.spacer { flex: 1; }
+.hidden { display: none !important; }
+.foot { margin-top: 26px; color: var(--muted); font-size: 12px; text-align: center; }
+a.link { color: var(--brand); text-decoration: none; }

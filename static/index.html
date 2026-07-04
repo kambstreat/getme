@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <title>GetME! - Find your event photos</title>
+  <link rel="stylesheet" href="/static/style.css?v=3" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand">
+      <span class="logo">GetME!</span>
+      <span class="tag">Scan your face, get your photos.</span>
+    </header>
+
+    <div class="card" id="scanCard">
+      <h1>Find your photos</h1>
+      <p class="lead">Take a clear, front-facing selfie. We'll match your face against
+        the event photos and show you every photo you're in.</p>
+
+      <div class="row camera-actions">
+        <button type="button" class="btn" id="cameraBtn">Take selfie</button>
+        <button type="button" class="btn secondary" id="uploadBtn">Choose from gallery</button>
+      </div>
+
+      <!-- Opens the phone's native camera app (works on HTTP, no browser webcam API). -->
+      <input type="file" id="cameraInput" accept="image/*" capture="user" class="hidden" />
+      <!-- Opens the photo gallery only. -->
+      <input type="file" id="galleryInput" accept="image/*" class="hidden" />
+
+      <div class="preview" id="preview">
+        <img id="previewImg" alt="Selfie preview" />
+      </div>
+
+      <div class="row" style="margin-top:18px;">
+        <button class="btn" id="matchBtn" disabled>Find my photos</button>
+        <div class="spacer"></div>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="card hidden" id="resultCard" style="margin-top:22px;">
+      <div class="result-banner" id="resultBanner"></div>
+      <div class="row">
+        <h2 style="margin:0;">Your photos</h2>
+        <div class="spacer"></div>
+        <button class="btn" id="downloadBtn">Download all (ZIP)</button>
+        <button class="btn secondary" id="restartBtn">Scan again</button>
+      </div>
+      <div class="gallery" id="gallery"></div>
+    </div>
+
+    <p class="foot">Powered by GetME! &middot; <a class="link" href="/admin">Organizer</a></p>
+  </div>
+
+  <script src="/static/app.js?v=3"></script>
+</body>
+</html>

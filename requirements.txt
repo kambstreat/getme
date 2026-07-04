@@ -1,0 +1,15 @@
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+deepface>=0.0.93
+tf-keras>=2.16.0
+scikit-learn>=1.4.0
+scipy>=1.12.0
+google-api-python-client>=2.120.0
+google-auth>=2.29.0
+google-auth-oauthlib>=1.2.0
+python-multipart>=0.0.9
+aiofiles>=23.2.1
+Pillow>=10.2.0
+numpy>=1.26.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
