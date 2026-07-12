@@ -17,6 +17,8 @@ Videographers sign up on your public URL, run one install command, and control e
 Previously: agent + GetME (two programs).  
 Now: **only GetME** (`uvicorn app.main:app`). When `RELAY_URL`, `RELAY_SESSION`, and `RELAY_AGENT_SECRET` are set, it connects to your relay over WebSocket and proxies guest/admin traffic — no separate agent process.
 
+**Python:** GetME needs **3.10–3.13** (not 3.14). The install script picks `python3.12` / `3.11` / `3.10` if available.
+
 ## Deploy relay (you)
 
 ```bash

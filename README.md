@@ -100,10 +100,11 @@ static/                index.html (guest), admin.html (organizer), css/js
 
 ## Setup
 
-1. Python 3.10+ recommended. Create a virtualenv and install deps:
+1. **Python 3.10–3.13** required (TensorFlow has no wheels for 3.14 yet). Create a virtualenv and install deps:
 
    ```bash
-   python -m venv .venv
+   # Prefer an explicit version if `python3` is 3.14+:
+   python3.12 -m venv .venv   # or python3.11 / python3.10
    source .venv/bin/activate
    pip install -r requirements.txt
    ```

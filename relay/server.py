@@ -208,10 +208,31 @@ if [[ ! -d .git ]]; then
   echo "Cloning GetME…"
   git clone {GETME_REPO} . 2>/dev/null || git clone {GETME_REPO} repo && mv repo/* repo/.git . 2>/dev/null || true
 fi
+# TensorFlow has no wheels for Python 3.14+ yet — require 3.10–3.13.
+PYTHON=""
+for candidate in python3.12 python3.11 python3.10; do
+  if command -v "$candidate" >/dev/null 2>&1; then
+    PYTHON="$candidate"
+    break
+  fi
+done
+if [[ -z "$PYTHON" ]]; then
+  echo "ERROR: Need Python 3.10, 3.11, or 3.12 (TensorFlow does not support 3.14 yet)."
+  echo "Install one of those, then re-run this script."
+  exit 1
+fi
+echo "Using $PYTHON ($($PYTHON --version))"
 if [[ ! -d .venv ]]; then
-  python3 -m venv .venv
+  "$PYTHON" -m venv .venv
 fi
 source .venv/bin/activate
+# Refuse broken venvs created with Python 3.14+
+PY_MINOR=$(python -c 'import sys; print(sys.version_info.minor)')
+if [[ "$PY_MINOR" -ge 14 ]]; then
+  echo "ERROR: This venv is Python 3.$PY_MINOR. Remove it and re-run:"
+  echo "  rm -rf $INSTALL_DIR/.venv"
+  exit 1
+fi
 pip install -q -r requirements.txt
 pip install -q httpx websockets
 echo "Starting GetME! (keeps running — leave this window open)…"
