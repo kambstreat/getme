@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     google_oauth_client_file: str = "oauth_client.json"
     # Base URL this server is reachable at; used to build the OAuth redirect URI.
     public_base_url: str = "http://localhost:8000"
+    # Path prefix when using the cloud relay, e.g. /e/wedding (must match PUBLIC_BASE_URL).
+    path_prefix: str = ""
+    # After OAuth, redirect here instead of /admin (set by relay sync).
+    studio_url: str = ""
 
     # Face recognition
     face_model: str = "ArcFace"
@@ -31,6 +35,11 @@ class Settings(BaseSettings):
 
     # Processing
     worker_processes: int = 0  # 0 => auto (cpu_count)
+
+    # Cloud relay (optional — when set, GetME connects to your relay as the agent)
+    relay_url: str = ""
+    relay_session: str = ""
+    relay_agent_secret: str = ""
 
     # App
     admin_token: str = "change-me"
@@ -47,3 +56,8 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def reload_settings() -> Settings:
+    get_settings.cache_clear()
+    return get_settings()

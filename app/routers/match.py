@@ -8,6 +8,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
 
 from app.database import db
+from app.http_utils import url_path
 from app.models.schemas import GalleryItem, GalleryResponse, MatchResult
 from app.services import match_service
 
@@ -41,7 +42,7 @@ def gallery(token: str) -> GalleryResponse:
                 index=i,
                 file_id=item["file_id"],
                 name=item["name"],
-                thumb_url=f"/api/thumb/{token}/{i}",
+                thumb_url=url_path(f"/api/thumb/{token}/{i}"),
             )
             for i, item in enumerate(items)
         ],

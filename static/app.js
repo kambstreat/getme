@@ -1,5 +1,7 @@
 // GetME! - user-facing selfie match + gallery flow.
 (function () {
+  const BASE = (window.GETME_BASE || "").replace(/\/$/, "");
+  const api = (path) => BASE + path;
   const cameraBtn = document.getElementById("cameraBtn");
   const uploadBtn = document.getElementById("uploadBtn");
   const cameraInput = document.getElementById("cameraInput");
@@ -64,7 +66,7 @@
     form.append("selfie", selectedFile);
 
     try {
-      const resp = await fetch("/api/match", { method: "POST", body: form });
+      const resp = await fetch(api("/api/match"), { method: "POST", body: form });
       const data = await resp.json();
       if (!resp.ok) {
         setStatus(data.detail || "Something went wrong.", "err");
@@ -94,7 +96,7 @@
     gallery.innerHTML = "";
 
     try {
-      const resp = await fetch(`/api/gallery/${currentToken}`);
+      const resp = await fetch(api(`/api/gallery/${currentToken}`));
       const data = await resp.json();
       (data.items || []).forEach((item) => {
         const img = document.createElement("img");
@@ -111,7 +113,7 @@
   }
 
   downloadBtn.addEventListener("click", () => {
-    if (currentToken) window.location.href = `/api/download/${currentToken}`;
+    if (currentToken) window.location.href = api(`/api/download/${currentToken}`);
   });
 
   restartBtn.addEventListener("click", () => {

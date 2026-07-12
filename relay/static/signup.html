@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GetME! — Start your event</title>
+  <link rel="stylesheet" href="/static/studio.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand">
+      <span class="logo">GetME!</span>
+      <span class="tag">For videographers</span>
+    </header>
+    <div class="card">
+      <h1>Start your event</h1>
+      <p class="lead">Create a session, install the agent on your laptop, then configure photos from the studio. Processing runs on your machine — guests get a public link to find their photos.</p>
+      <label for="eventName">Event name</label>
+      <input type="text" id="eventName" placeholder="e.g. Priya &amp; Arjun Wedding" />
+      <label for="email">Email (optional)</label>
+      <input type="email" id="email" placeholder="you@studio.com" />
+      <button class="btn" id="signupBtn">Create session</button>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+  <script>
+    const statusEl = document.getElementById("status");
+    document.getElementById("signupBtn").addEventListener("click", async () => {
+      const event_name = document.getElementById("eventName").value.trim();
+      const email = document.getElementById("email").value.trim();
+      if (!event_name) {
+        statusEl.textContent = "Enter an event name.";
+        statusEl.className = "status err";
+        return;
+      }
+      statusEl.textContent = "Creating session…";
+      statusEl.className = "status";
+      try {
+        const resp = await fetch("/api/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event_name, email }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Failed");
+        window.location.href = data.studio_url;
+      } catch (e) {
+        statusEl.textContent = e.message || "Something went wrong.";
+        statusEl.className = "status err";
+      }
+    });
+  </script>
+</body>
+</html>

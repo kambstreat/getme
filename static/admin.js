@@ -1,5 +1,7 @@
 // GetME! - organizer console: Drive connection + start processing + poll status.
 (function () {
+  const BASE = (window.GETME_BASE || "").replace(/\/$/, "");
+  const api = (path) => BASE + path;
   const adminToken = document.getElementById("adminToken");
   const driveLink = document.getElementById("driveLink");
   const startBtn = document.getElementById("startBtn");
@@ -11,6 +13,12 @@
   const connStatusEl = document.getElementById("connStatus");
 
   let pollTimer = null;
+
+  // Studio opens admin with ?token=… so videographers skip typing it.
+  const urlToken = new URLSearchParams(window.location.search).get("token");
+  if (urlToken && adminToken) {
+    adminToken.value = urlToken;
+  }
 
   function setStatus(msg, kind) {
     statusEl.textContent = msg || "";
@@ -24,7 +32,7 @@
 
   async function refreshConnection(keepStatusMessage) {
     try {
-      const resp = await fetch("/api/auth/google/status");
+      const resp = await fetch(api("/api/auth/google/status"));
       const data = await resp.json();
       if (data.connected) {
         connectBtn.textContent = "Reconnect";
@@ -46,7 +54,7 @@
     const token = adminToken.value.trim();
     if (!token) return setConnStatus("Enter your admin token below first.", "err");
     try {
-      const resp = await fetch("/api/auth/google/start", {
+      const resp = await fetch(api("/api/auth/google/start"), {
         headers: { "X-Admin-Token": token },
       });
       const data = await resp.json();
@@ -61,7 +69,7 @@
     const token = adminToken.value.trim();
     if (!token) return setConnStatus("Enter your admin token below first.", "err");
     try {
-      const resp = await fetch("/api/auth/google/disconnect", {
+      const resp = await fetch(api("/api/auth/google/disconnect"), {
         method: "POST",
         headers: { "X-Admin-Token": token },
       });
@@ -82,7 +90,7 @@
     setConnStatus("Google sign-in failed: " + params.get("drive_error"), "err");
   }
   if (fromRedirect) {
-    window.history.replaceState({}, "", "/admin");
+    window.history.replaceState({}, "", api("/admin"));
   }
 
   // Don't let the generic status text overwrite a redirect result message.
@@ -100,7 +108,7 @@
     progressBar.style.width = "0%";
 
     try {
-      const resp = await fetch("/api/drive/process", {
+      const resp = await fetch(api("/api/drive/process"), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Admin-Token": token },
         body: JSON.stringify({ drive_link: link }),
@@ -122,7 +130,7 @@
     clearInterval(pollTimer);
     pollTimer = setInterval(async () => {
       try {
-        const resp = await fetch(`/api/drive/status/${jobId}`);
+        const resp = await fetch(api(`/api/drive/status/${jobId}`));
         const job = await resp.json();
         if (!resp.ok) {
           setStatus(job.detail || "Status error.", "err");

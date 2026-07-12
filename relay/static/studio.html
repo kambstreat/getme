@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GetME! Studio</title>
+  <link rel="stylesheet" href="/static/studio.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand">
+      <span class="logo">GetME!</span>
+      <span class="tag">Studio</span>
+    </header>
+
+    <div class="card">
+      <h1 id="eventTitle">Event</h1>
+      <div class="pill-row">
+        <span class="pill" id="agentPill">Agent: checking…</span>
+        <span class="pill" id="drivePill">Drive: not connected</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>1. Run GetME! on your laptop</h2>
+      <p class="lead">One command installs and starts GetME. It connects to this studio automatically — no separate agent app.</p>
+      <div class="code-block" id="installCmd">Loading…</div>
+      <div class="row">
+        <button class="btn secondary" id="copyInstall">Copy command</button>
+        <a class="btn" id="downloadInstall" href="#">Download install script</a>
+      </div>
+      <p class="hint">Run once in Terminal (Mac/Linux). Keep the window open during the event.</p>
+    </div>
+
+    <div class="card">
+      <h2>2. Connect Google Drive</h2>
+      <p class="lead">Sign in with the Google account that owns (or can view) your photo folder.</p>
+      <button class="btn" id="connectDriveBtn" disabled>Connect Google Drive</button>
+      <p class="hint">Available once the agent is online.</p>
+    </div>
+
+    <div class="card">
+      <h2>3. Photo folder &amp; processing</h2>
+      <label for="driveLink">Google Drive folder link</label>
+      <input type="text" id="driveLink" placeholder="https://drive.google.com/drive/folders/..." disabled />
+      <div class="row" style="margin-top:14px">
+        <button class="btn" id="saveLinkBtn" disabled>Save folder link</button>
+        <button class="btn secondary" id="processBtn" disabled>Start processing</button>
+      </div>
+      <div class="progress hidden" id="progress"><div id="progressBar"></div></div>
+      <div class="status" id="jobStatus"></div>
+    </div>
+
+    <div class="card">
+      <h2>Guest link</h2>
+      <p class="lead">Share this URL or QR code so guests can take a selfie and get their photos.</p>
+      <div class="code-block" id="guestUrl">—</div>
+      <button class="btn secondary" id="copyGuest">Copy guest link</button>
+    </div>
+  </div>
+  <script src="/static/studio.js"></script>
+</body>
+</html>

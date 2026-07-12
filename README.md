@@ -172,6 +172,12 @@ cloudflared tunnel --url http://localhost:8000
 Share the public URL (a QR code works great at events). Stop the tunnel to take
 the app offline.
 
+### Cloud relay (recommended for videographers)
+
+Deploy a small relay server with a **stable public URL**; processing still runs on
+the videographer's laptop. See **[RELAY.md](RELAY.md)** for the full setup.
+
+
 ## Configuration reference
 
 See `.env.example`. Key knobs:
