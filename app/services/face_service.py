@@ -127,6 +127,9 @@ def cluster_faces(all_faces: list[dict]) -> dict[str, dict]:
     chain into one cluster the way they can with DBSCAN. Faces appearing in a
     single photo naturally form their own one-member cluster.
 
+    After agglomerative clustering, near-duplicate centroids (same person split
+    by pose/angle) are merged when cosine similarity is high.
+
     Returns face_id -> {centroid, file_ids, file_names, face_count}.
     """
     from sklearn.cluster import AgglomerativeClustering
@@ -147,12 +150,11 @@ def cluster_faces(all_faces: list[dict]) -> dict[str, dict]:
             linkage="average",
         ).fit_predict(embeddings)
 
-    groups: dict[str, list[int]] = {}
+    groups: dict[int, list[int]] = {}
     for idx, label in enumerate(labels):
-        groups.setdefault(f"face_{label}", []).append(idx)
+        groups.setdefault(int(label), []).append(idx)
 
-    clusters: dict[str, dict] = {}
-    for face_id, indices in groups.items():
+    def _build(indices: list[int]) -> dict:
         vecs = embeddings[indices]
         weights = np.array([all_faces[i]["quality"] for i in indices], dtype=np.float32)
         if weights.sum() <= 0:
@@ -173,12 +175,51 @@ def cluster_faces(all_faces: list[dict]) -> dict[str, dict]:
             if all_faces[i].get("file_name"):
                 file_names[fid] = all_faces[i]["file_name"]
 
-        clusters[face_id] = {
+        return {
             "centroid": centroid.astype(float).tolist(),
             "file_ids": file_ids,
             "file_names": file_names,
             "face_count": len(indices),
+            "_indices": list(indices),
         }
+
+    raw: dict[str, dict] = {f"tmp_{lab}": _build(idxs) for lab, idxs in groups.items()}
+
+    def _file_ids_of(key: str) -> set[str]:
+        return {all_faces[i]["file_id"] for i in raw[key]["_indices"]}
+
+    # Merge near-duplicate people (pose/angle splits). Cosine distance threshold
+    # eps=0.35 ⇒ similarity 0.65; use a slightly stricter merge bar.
+    # Never merge clusters that share a photo — two faces in one image are
+    # different people (blocks lookalike merges like neighbors in a group shot).
+    merge_sim = max(0.70, 1.0 - float(settings.cluster_eps) * 0.85)
+    ids = list(raw.keys())
+    centroids = {k: np.asarray(raw[k]["centroid"], dtype=np.float32) for k in ids}
+    absorbed: set[str] = set()
+    for i, a in enumerate(ids):
+        if a in absorbed:
+            continue
+        for b in ids[i + 1 :]:
+            if b in absorbed:
+                continue
+            sim = float(np.dot(centroids[a], centroids[b]))
+            if sim < merge_sim:
+                continue
+            if _file_ids_of(a) & _file_ids_of(b):
+                continue
+            combined = raw[a]["_indices"] + raw[b]["_indices"]
+            raw[a] = _build(combined)
+            centroids[a] = np.asarray(raw[a]["centroid"], dtype=np.float32)
+            absorbed.add(b)
+
+    clusters: dict[str, dict] = {}
+    n = 0
+    for key, data in raw.items():
+        if key in absorbed:
+            continue
+        data.pop("_indices", None)
+        clusters[f"face_{n}"] = data
+        n += 1
     return clusters
 
 
@@ -214,6 +255,10 @@ def cluster_faces_incremental(new_faces: list[dict], existing_clusters: dict[str
     
     matched_faces: dict[str, list[dict]] = {fid: [] for fid in existing_clusters}
     unmatched_faces: list[dict] = []
+    # file_ids claimed by a cluster during this incremental pass (same-photo guard)
+    claimed: dict[str, set[str]] = {
+        fid: set(existing_clusters[fid].get("file_ids", [])) for fid in existing_clusters
+    }
     
     # Match new faces to existing clusters
     for face in new_faces:
@@ -222,6 +267,9 @@ def cluster_faces_incremental(new_faces: list[dict], existing_clusters: dict[str
         best_sim = -1.0
         
         for face_id, cluster_data in existing_clusters.items():
+            # Same photo already has someone in this cluster → different person
+            if face["file_id"] in claimed.get(face_id, set()):
+                continue
             centroid = np.asarray(cluster_data["centroid"], dtype=np.float32)
             # Cosine similarity (both are normalized)
             sim = float(np.dot(embedding, centroid))
@@ -232,6 +280,7 @@ def cluster_faces_incremental(new_faces: list[dict], existing_clusters: dict[str
         # If similarity is high enough, assign to existing cluster
         if best_id and (1.0 - best_sim) < match_threshold:
             matched_faces[best_id].append(face)
+            claimed.setdefault(best_id, set()).add(face["file_id"])
         else:
             unmatched_faces.append(face)
     

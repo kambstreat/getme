@@ -16,27 +16,34 @@
     <div class="card">
       <h1 id="eventTitle">Event</h1>
       <div class="pill-row">
-        <span class="pill" id="agentPill">Agent: checking…</span>
+        <span class="pill" id="agentPill">GetME: checking…</span>
         <span class="pill" id="drivePill">Drive: not connected</span>
       </div>
     </div>
 
-    <div class="card">
-      <h2>1. Run GetME! on your laptop</h2>
-      <p class="lead">One command installs and starts GetME. It connects to this studio automatically — no separate agent app.</p>
+    <div class="card" id="installCard">
+      <h2>1. Run GetME on your Mac</h2>
+      <p class="lead">Copy one command, paste it in Terminal, and leave that window open during the event.</p>
+      <ol class="steps" id="installSteps">
+        <li>Open <strong>Terminal</strong> (Spotlight → type Terminal)</li>
+        <li>Click <strong>Copy install command</strong> below</li>
+        <li>Paste in Terminal and press Return</li>
+        <li>Wait until this page shows <strong>GetME: online</strong> (first install ~5–15 min)</li>
+      </ol>
       <div class="code-block" id="installCmd">Loading…</div>
       <div class="row">
-        <button class="btn secondary" id="copyInstall">Copy command</button>
-        <a class="btn" id="downloadInstall" href="#">Download install script</a>
+        <button class="btn" id="copyInstall">Copy install command</button>
       </div>
-      <p class="hint">Run once in Terminal (Mac/Linux). Keep the window open during the event.</p>
+      <p class="hint" id="installHint">Keep Terminal open while guests find their photos.</p>
+      <p class="hint hidden" id="oauthMissingHint">Relay is missing GETME_OAUTH_CLIENT_URL — Connect Google Drive may fail until the operator sets it.</p>
+      <p class="hint hidden" id="installDoneHint">GetME is online on your Mac. Continue with Connect Google Drive below.</p>
     </div>
 
     <div class="card">
       <h2>2. Connect Google Drive</h2>
       <p class="lead">Sign in with the Google account that owns (or can view) your photo folder.</p>
       <button class="btn" id="connectDriveBtn" disabled>Connect Google Drive</button>
-      <p class="hint">Available once the agent is online.</p>
+      <p class="hint">Available once GetME is online. Google may ask you to approve GetME.</p>
     </div>
 
     <div class="card">
@@ -53,11 +60,12 @@
 
     <div class="card">
       <h2>Guest link</h2>
-      <p class="lead">Share this URL or QR code so guests can take a selfie and get their photos.</p>
+      <p class="lead">Share this URL so guests can take a selfie and get their photos.</p>
       <div class="code-block" id="guestUrl">—</div>
       <button class="btn secondary" id="copyGuest">Copy guest link</button>
     </div>
   </div>
+  <div class="toast hidden" id="toast"></div>
   <script src="/static/studio.js"></script>
 </body>
 </html>

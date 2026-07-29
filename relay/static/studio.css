@@ -80,3 +80,14 @@ input:focus { outline: 2px solid var(--brand); }
   height: 100%; width: 0%; background: linear-gradient(90deg, var(--brand), var(--brand-2));
   transition: width 0.3s ease;
 }
+.steps {
+  margin: 0 0 16px; padding-left: 20px; color: var(--muted); line-height: 1.6; font-size: 14px;
+}
+.steps.hidden, .hint.hidden, .toast.hidden { display: none; }
+.card.dimmed { opacity: 0.72; }
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #1c2433; color: var(--text); border: 1px solid rgba(255,255,255,0.12);
+  padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 50;
+}

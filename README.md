@@ -176,7 +176,8 @@ the app offline.
 ### Cloud relay (recommended for videographers)
 
 Deploy a small relay server with a **stable public URL**; processing still runs on
-the videographer's laptop. See **[RELAY.md](RELAY.md)** for the full setup.
+the videographer's laptop. See **[RELAY.md](RELAY.md)** for VPS setup, Mac one-command
+install, and `GETME_OAUTH_CLIENT_URL`. Use `requirements-relay.txt` on the cloud (no TensorFlow).
 
 
 ## Configuration reference

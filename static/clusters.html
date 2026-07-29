@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GetME! — Clusters</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    .person {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+    .person-head {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .centroid {
+      width: 120px; height: 120px; object-fit: cover;
+      border-radius: 12px; border: 2px solid rgba(108,140,255,0.5);
+      background: #000;
+    }
+    .centroid.missing {
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 12px;
+    }
+    .meta h2 { margin: 0 0 4px; font-size: 18px; }
+    .meta p { margin: 0; color: var(--muted); font-size: 13px; }
+    .section-label {
+      margin: 16px 0 8px;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .fullpics {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .fullpics a {
+      display: block;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: #000;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .fullpics img {
+      width: 100%;
+      aspect-ratio: 3 / 2;
+      object-fit: cover;
+      display: block;
+      background: #000;
+    }
+    .fullpics span {
+      display: block;
+      padding: 6px 8px;
+    }
+    .crops {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .crops img {
+      width: 72px; height: 72px; object-fit: cover;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+      background: #000;
+    }
+    .empty { color: var(--muted); padding: 8px 0; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand">
+      <span class="logo">GetME!</span>
+      <span class="tag">Local clusters</span>
+    </header>
+    <div class="card" style="margin-bottom:20px">
+      <h1 style="margin:0 0 8px;font-size:24px">People groupings</h1>
+      <p class="lead" style="margin:0" id="summary">Loading…</p>
+      <p class="foot" style="margin-top:12px">
+        <a class="link" href="/admin">Admin</a> ·
+        <a class="link" href="/">Guest</a>
+      </p>
+    </div>
+    <div id="list"></div>
+  </div>
+  <script>
+    async function load() {
+      const resp = await fetch("/api/clusters", { cache: "no-store" });
+      const data = await resp.json();
+      document.getElementById("summary").textContent =
+        data.count
+          ? `${data.count} people · centroid + full photos`
+          : "No clusters yet. Process a Drive folder from /admin first.";
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+      if (!data.people.length) {
+        list.innerHTML = '<p class="empty">Nothing to show.</p>';
+        return;
+      }
+      for (const p of data.people) {
+        const div = document.createElement("div");
+        div.className = "person";
+        const crops = (p.face_crops || [])
+          .map(src => `<img src="${src}" alt="" loading="lazy" />`)
+          .join("");
+        const fulls = (p.full_photos || [])
+          .map(ph => `
+            <a href="${ph.url}" target="_blank" rel="noopener">
+              <img src="${ph.preview_url}" alt="${ph.name}" loading="lazy" />
+              <span>${ph.name}</span>
+            </a>`)
+          .join("");
+        const centroid = p.centroid_image
+          ? `<img class="centroid" src="${p.centroid_image}" alt="${p.face_id}" />`
+          : `<div class="centroid missing">no crop</div>`;
+        div.innerHTML = `
+          <div class="person-head">
+            ${centroid}
+            <div class="meta">
+              <h2>${p.face_id}</h2>
+              <p>${p.face_count} faces · ${(p.files || []).length} photos</p>
+            </div>
+          </div>
+          <div class="section-label">Full photos</div>
+          <div class="fullpics">${fulls || "<span class='empty'>No local full photos for these files</span>"}</div>
+          <div class="section-label">Face crops</div>
+          <div class="crops">${crops || "<span class='empty'>No face crops on disk</span>"}</div>
+        `;
+        list.appendChild(div);
+      }
+    }
+    load().catch(err => {
+      document.getElementById("summary").textContent = "Failed to load clusters: " + err;
+    });
+  </script>
+</body>
+</html>

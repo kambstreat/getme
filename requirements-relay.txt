@@ -1,0 +1,9 @@
+# Lightweight deps for the cloud relay only (no TensorFlow / DeepFace).
+# Install on your VPS:
+#   pip install -r requirements-relay.txt
+#   RELAY_PUBLIC_ORIGIN=https://your-domain.com python -m relay server --port 9000
+
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+httpx>=0.27.0
+websockets>=12.0

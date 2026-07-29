@@ -24,16 +24,40 @@
   const jobStatus = el("jobStatus");
   const progress = el("progress");
   const progressBar = el("progressBar");
+  const installCard = el("installCard");
+  const toast = el("toast");
 
   let session = null;
+  let toastTimer = null;
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.remove("hidden");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.add("hidden"), 2800);
+  }
 
   function setAgentPill(connected) {
-    agentPill.textContent = connected ? "GetME: online" : "GetME: offline — run install command on laptop";
+    agentPill.textContent = connected
+      ? "GetME: online"
+      : "GetME: offline — paste install command in Terminal";
     agentPill.className = "pill " + (connected ? "ok" : "err");
     el("connectDriveBtn").disabled = !connected;
     el("saveLinkBtn").disabled = !connected;
     el("processBtn").disabled = !connected || !session?.drive_link;
     driveLink.disabled = !connected;
+
+    if (connected) {
+      installCard.classList.add("dimmed");
+      el("installHint").classList.add("hidden");
+      el("installDoneHint").classList.remove("hidden");
+      el("installSteps").classList.add("hidden");
+    } else {
+      installCard.classList.remove("dimmed");
+      el("installHint").classList.remove("hidden");
+      el("installDoneHint").classList.add("hidden");
+      el("installSteps").classList.remove("hidden");
+    }
   }
 
   function setDrivePill(connected) {
@@ -91,14 +115,30 @@
     const resp = await api("/install");
     const data = await resp.json();
     el("installCmd").textContent = data.one_liner;
-    el("downloadInstall").href = data.script_url;
+    if (!data.oauth_client_configured) {
+      el("oauthMissingHint").classList.remove("hidden");
+    }
   }
 
-  el("copyInstall").addEventListener("click", () => {
-    navigator.clipboard.writeText(el("installCmd").textContent);
+  el("copyInstall").addEventListener("click", async () => {
+    const text = el("installCmd").textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("Copied — paste in Terminal");
+      el("copyInstall").textContent = "Copied!";
+      setTimeout(() => {
+        el("copyInstall").textContent = "Copy install command";
+      }, 2000);
+    } catch (_) {
+      showToast("Select the command and copy manually (Cmd+C)");
+    }
   });
-  el("copyGuest").addEventListener("click", () => {
-    navigator.clipboard.writeText(el("guestUrl").textContent);
+
+  el("copyGuest").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(el("guestUrl").textContent);
+      showToast("Guest link copied");
+    } catch (_) {}
   });
 
   el("connectDriveBtn").addEventListener("click", async () => {
@@ -137,7 +177,7 @@
       jobStatus.className = "status err";
       return;
     }
-    jobStatus.textContent = "Folder link saved and sent to agent.";
+    jobStatus.textContent = "Folder link saved and sent to your Mac.";
     jobStatus.className = "status ok";
     el("processBtn").disabled = !session.agent_connected;
     renderJob();
@@ -145,7 +185,7 @@
 
   el("processBtn").addEventListener("click", async () => {
     el("processBtn").disabled = true;
-    jobStatus.textContent = "Starting processing on your laptop…";
+    jobStatus.textContent = "Starting processing on your Mac…";
     const resp = await api("/process", { method: "POST" });
     session = await resp.json();
     if (!resp.ok) {

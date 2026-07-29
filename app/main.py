@@ -12,9 +12,10 @@ from fastapi.staticfiles import StaticFiles
 from app.database import db
 from app.http_utils import path_prefix
 from app.relay_client import relay_enabled, start_relay_client, stop_relay_client
-from app.routers import auth, drive, match
+from app.routers import auth, clusters, drive, match
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 LOG_FILE = "data/getme.log"
 
 app = FastAPI(title="GetME!", version="0.1.0")
@@ -52,6 +53,7 @@ async def _shutdown() -> None:
 app.include_router(auth.router)
 app.include_router(drive.router)
 app.include_router(match.router)
+app.include_router(clusters.router)
 
 
 @app.get("/health")
@@ -92,5 +94,11 @@ def admin(request: Request) -> HTMLResponse:
     return _serve_html("admin.html", request)
 
 
-# Static assets (css/js) served under /static.
+# Static assets (css/js) + local face crop folders for the clusters viewer.
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+os.makedirs(os.path.join(DATA_DIR, "centroids"), exist_ok=True)
+os.makedirs(os.path.join(DATA_DIR, "allfaces"), exist_ok=True)
+app.mount("/data/centroids", StaticFiles(directory=os.path.join(DATA_DIR, "centroids")), name="centroids")
+app.mount("/data/allfaces", StaticFiles(directory=os.path.join(DATA_DIR, "allfaces")), name="allfaces")
+os.makedirs(os.path.join(DATA_DIR, "fullpics"), exist_ok=True)
+app.mount("/data/fullpics", StaticFiles(directory=os.path.join(DATA_DIR, "fullpics")), name="fullpics")
