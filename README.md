@@ -16,7 +16,7 @@ managed tunnel (ngrok or Cloudflare Tunnel).
 
 ```
 Drive folder -> stream each image -> detect + embed faces (ArcFace)
-            -> cluster into people (DBSCAN) -> store centroids + file ids (SQLite)
+            -> cluster into people (agglomerative) -> store centroids + file ids (SQLite)
 
 Guest selfie -> embed -> cosine match vs centroids -> token
             -> in-session thumbnail gallery + Download all (ZIP), streamed from Drive
@@ -88,6 +88,7 @@ app/
     drive.py           POST /api/drive/process, GET /api/drive/status/{job_id}
                        POST /api/drive/polling/start, /stop, GET /status
     match.py           POST /api/match, gallery/thumb/download endpoints
+    clusters.py        GET /clusters, GET /api/clusters (local people viewer)
   services/
     drive_service.py   Drive link parsing, listing, in-memory streaming
     face_service.py    Detection, ArcFace embeddings, quality filter, clustering (+ incremental)
@@ -95,7 +96,7 @@ app/
     match_service.py   Selfie matching, thumbnails, ZIP streaming
   database/db.py       SQLite: clusters, cluster_files, tokens, processed_files
   models/schemas.py    Pydantic models
-static/                index.html (guest), admin.html (organizer), css/js
+static/                index.html (guest), admin.html (organizer), clusters.html, css/js
 ```
 
 ## Setup
@@ -103,6 +104,8 @@ static/                index.html (guest), admin.html (organizer), css/js
 1. **Python 3.10–3.13** required (TensorFlow has no wheels for 3.14 yet). Create a virtualenv and install deps:
 
    ```bash
+   git clone https://github.com/kambstreat/getme.git
+   cd getme
    # Prefer an explicit version if `python3` is 3.14+:
    python3.12 -m venv .venv   # or python3.11 / python3.10
    source .venv/bin/activate
@@ -148,17 +151,44 @@ static/                index.html (guest), admin.html (organizer), css/js
 
    ```bash
    cp .env.example .env
-   # edit .env: set ADMIN_TOKEN, point GOOGLE_SERVICE_ACCOUNT_FILE at your key
+   # edit .env — at minimum set ADMIN_TOKEN
+   # leave RELAY_URL / RELAY_SESSION / RELAY_AGENT_SECRET empty for pure local use
    ```
 
-## Run
+## Run locally
+
+From the repo root, with the venv activated:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Pure local (no cloud relay):
+env RELAY_URL= RELAY_SESSION= RELAY_AGENT_SECRET= \
+  .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-- Organizer console: <http://localhost:8000/admin> (enter the admin token + Drive link)
-- Guest page: <http://localhost:8000/>
+Or, if your `.env` has no `RELAY_*` values:
+
+```bash
+.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+### Local URLs
+
+| Page | URL |
+|------|-----|
+| Guest (selfie match) | http://127.0.0.1:8000/ |
+| Admin (Drive + process) | http://127.0.0.1:8000/admin |
+| Clusters (people + crops) | http://127.0.0.1:8000/clusters |
+| Health | http://127.0.0.1:8000/health |
+
+### Typical local flow
+
+1. Open **Admin**, enter `ADMIN_TOKEN` from `.env`.
+2. **Connect Google Drive** (OAuth) if not using a service account.
+3. Paste a Drive folder link and start processing (full or incremental).
+4. Open **Clusters** to review people groupings, centroids, and face crops.
+5. Open the **Guest** page, upload a selfie, and confirm matched photos.
+
+Leave the Terminal window running while you use the app. Stop with `Ctrl+C`.
 
 ### Expose to guests with a tunnel
 
@@ -187,8 +217,8 @@ See `.env.example`. Key knobs:
 | Setting | Meaning | Default |
 |---------|---------|---------|
 | `MATCH_THRESHOLD` | Min cosine similarity for a selfie match | `0.50` |
-| `CLUSTER_EPS` | DBSCAN cosine eps (lower = stricter grouping) | `0.40` |
-| `CLUSTER_MIN_SAMPLES` | DBSCAN min samples for a core point | `2` |
+| `CLUSTER_EPS` | Agglomerative cosine-distance threshold (lower = stricter) | `0.40` |
+| `CLUSTER_MIN_SAMPLES` | Legacy setting (unused by agglomerative clustering) | `2` |
 | `MIN_FACE_WIDTH_FRACTION` | Drop faces narrower than this fraction of image width | `0.03` |
 | `MIN_FACE_CONFIDENCE` | Drop low-confidence detections | `0.50` |
 | `ADMIN_TOKEN` | Shared secret guarding `/api/drive/process` | `change-me` |
