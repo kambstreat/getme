@@ -87,16 +87,19 @@ app/
   routers/
     drive.py           POST /api/drive/process, GET /api/drive/status/{job_id}
                        POST /api/drive/polling/start, /stop, GET /status
+    local.py           GET /api/local/status, POST /api/local/process (folder photos)
     match.py           POST /api/match, gallery/thumb/download endpoints
-    clusters.py        GET /clusters, GET /api/clusters (local people viewer)
+    clusters.py        GET /clusters, GET /api/clusters (people viewer)
   services/
     drive_service.py   Drive link parsing, listing, in-memory streaming
+    local_photos.py    List/stream images from LOCAL_PHOTOS_DIR
     face_service.py    Detection, ArcFace embeddings, quality filter, clustering (+ incremental)
     processing.py      Background job orchestration, polling, status registry
     match_service.py   Selfie matching, thumbnails, ZIP streaming
   database/db.py       SQLite: clusters, cluster_files, tokens, processed_files
   models/schemas.py    Pydantic models
 static/                index.html (guest), admin.html (organizer), clusters.html, css/js
+test-photos/           Demo images for Drive-free local clustering
 ```
 
 ## Setup
@@ -153,11 +156,16 @@ static/                index.html (guest), admin.html (organizer), clusters.html
    cp .env.example .env
    # edit .env — at minimum set ADMIN_TOKEN
    # leave RELAY_URL / RELAY_SESSION / RELAY_AGENT_SECRET empty for pure local use
+   # optional: LOCAL_PHOTOS_DIR=test-photos (default) for Drive-free testing
    ```
 
-## Run locally
+## Running locally
 
-From the repo root, with the venv activated:
+Fastest path: cluster the demo images in `test-photos/` (no Google Drive).
+
+### 1. Start the server
+
+From the repo root, with the venv activated and `ADMIN_TOKEN` set in `.env`:
 
 ```bash
 # Pure local (no cloud relay):
@@ -171,24 +179,67 @@ Or, if your `.env` has no `RELAY_*` values:
 .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-### Local URLs
+Leave that terminal open. Stop with `Ctrl+C`.
+
+### 2. Cluster `test-photos/`
+
+The repo ships demo images under [`test-photos/`](test-photos/) (Tom Cruise ×3, Zendaya ×2).
+`LOCAL_PHOTOS_DIR` defaults to that folder.
+
+1. Open **Admin**: [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin)
+2. Enter the `ADMIN_TOKEN` from your `.env`.
+3. Click **Process local folder**.
+
+That runs face detection + ArcFace embeddings and agglomerative clustering
+(`CLUSTER_EPS`, default `0.4`). Wait until the admin status shows the job finished
+(first run also downloads model weights).
+
+Optional — same step via curl:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/local/process \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Token: YOUR_ADMIN_TOKEN" \
+  -d '{}'
+```
+
+Check what the folder contains:
+
+```bash
+curl -s http://127.0.0.1:8000/api/local/status
+```
+
+To use your own images instead, drop JPG/PNG/WebP files into `test-photos/`
+(or set `LOCAL_PHOTOS_DIR` in `.env`) and process again.
+
+### 3. View clusters
+
+After processing finishes, open the people viewer:
+
+**[http://127.0.0.1:8000/clusters](http://127.0.0.1:8000/clusters)**
+
+You should see one group per person (for the demo set: Cruise and Zendaya), with
+face crops and links back to the source photos in `test-photos/`.
+
+### Other local URLs
 
 | Page | URL |
 |------|-----|
-| Guest (selfie match) | http://127.0.0.1:8000/ |
-| Admin (Drive + process) | http://127.0.0.1:8000/admin |
-| Clusters (people + crops) | http://127.0.0.1:8000/clusters |
-| Health | http://127.0.0.1:8000/health |
+| Guest (selfie match) | [http://127.0.0.1:8000/](http://127.0.0.1:8000/) |
+| Admin (process folder / Drive) | [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin) |
+| Clusters (people + crops) | [http://127.0.0.1:8000/clusters](http://127.0.0.1:8000/clusters) |
+| Health | [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health) |
 
-### Typical local flow
+Try a selfie on the Guest page after clustering — gallery thumbs and ZIP downloads
+read from the same local folder (no Drive needed).
 
-1. Open **Admin**, enter `ADMIN_TOKEN` from `.env`.
+### Running with Google Drive
+
+1. Open [Admin](http://127.0.0.1:8000/admin), enter `ADMIN_TOKEN`.
 2. **Connect Google Drive** (OAuth) if not using a service account.
 3. Paste a Drive folder link and start processing (full or incremental).
-4. Open **Clusters** to review people groupings, centroids, and face crops.
-5. Open the **Guest** page, upload a selfie, and confirm matched photos.
-
-Leave the Terminal window running while you use the app. Stop with `Ctrl+C`.
+4. Review people at [http://127.0.0.1:8000/clusters](http://127.0.0.1:8000/clusters).
+5. Open the Guest page, upload a selfie, and confirm matched photos.
 
 ### Expose to guests with a tunnel
 
@@ -217,11 +268,12 @@ See `.env.example`. Key knobs:
 | Setting | Meaning | Default |
 |---------|---------|---------|
 | `MATCH_THRESHOLD` | Min cosine similarity for a selfie match | `0.50` |
-| `CLUSTER_EPS` | Agglomerative cosine-distance threshold (lower = stricter) | `0.40` |
+| `CLUSTER_EPS` | Agglomerative cosine-distance threshold (lower = stricter) | `0.4` |
 | `CLUSTER_MIN_SAMPLES` | Legacy setting (unused by agglomerative clustering) | `2` |
 | `MIN_FACE_WIDTH_FRACTION` | Drop faces narrower than this fraction of image width | `0.03` |
 | `MIN_FACE_CONFIDENCE` | Drop low-confidence detections | `0.50` |
-| `ADMIN_TOKEN` | Shared secret guarding `/api/drive/process` | `change-me` |
+| `ADMIN_TOKEN` | Shared secret guarding admin/process endpoints | `change-me` |
+| `LOCAL_PHOTOS_DIR` | Folder of JPGs for local testing (Admin → Process local folder) | `test-photos` |
 | `TOKEN_TTL_SECONDS` | Lifetime of a guest's download token | `86400` |
 
 ## Scope & future work
