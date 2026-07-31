@@ -19,7 +19,9 @@ oauth_client.json
 data/
 uploads/
 
-# Local test photos (not for the repo)
+# Local test photos live in test-photos/ (tracked for demos)
+
+# Private local albums (not for the repo)
 bhogipallu/
 
 # Editor / local tooling
