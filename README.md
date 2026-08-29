@@ -81,26 +81,16 @@ POST /api/drive/process
 ## Project layout
 
 ```
-app/
-  main.py              FastAPI entry point (serves pages + mounts routers)
-  config.py            Settings (env / .env)
-  routers/
-    drive.py           POST /api/drive/process, GET /api/drive/status/{job_id}
-                       POST /api/drive/polling/start, /stop, GET /status
-    local.py           GET /api/local/status, POST /api/local/process (folder photos)
-    match.py           POST /api/match, gallery/thumb/download endpoints
-    clusters.py        GET /clusters, GET /api/clusters (people viewer)
-  services/
-    drive_service.py   Drive link parsing, listing, in-memory streaming
-    local_photos.py    List/stream images from LOCAL_PHOTOS_DIR
-    face_service.py    Detection, ArcFace embeddings, quality filter, clustering (+ incremental)
-    processing.py      Background job orchestration, polling, status registry
-    match_service.py   Selfie matching, thumbnails, ZIP streaming
-  database/db.py       SQLite: clusters, cluster_files, tokens, processed_files
-  models/schemas.py    Pydantic models
-static/                index.html (guest), admin.html (organizer), clusters.html, css/js
-test-photos/           Demo images for Drive-free local clustering
+app/                   FastAPI backend (API-first: face AI, DB, match)
+clients/
+  web-agent/           Guest + organizer browser UI (optional mount)
+  web-studio/          Relay signup + studio UI
+relay/                 Cloud relay process (no HTML)
+data/                  Runtime DB + crops (gitignored content)
+test-photos/           Demo images for local processing
 ```
+
+Set `GETME_UI=clients/web-agent` (default) to serve the agent UI, or `GETME_UI=` for API-only.
 
 ## Setup
 
@@ -268,7 +258,8 @@ See `.env.example`. Key knobs:
 | Setting | Meaning | Default |
 |---------|---------|---------|
 | `MATCH_THRESHOLD` | Min cosine similarity for a selfie match | `0.50` |
-| `CLUSTER_EPS` | Agglomerative cosine-distance threshold (lower = stricter) | `0.4` |
+| `CLUSTER_EPS` | Agglomerative cosine-distance threshold (higher = merge more poses) | `0.45` |
+| `CLUSTER_MERGE_SIM` | Min centroid similarity to merge pose/angle splits (lower = more merges) | `0.55` |
 | `CLUSTER_MIN_SAMPLES` | Legacy setting (unused by agglomerative clustering) | `2` |
 | `MIN_FACE_WIDTH_FRACTION` | Drop faces narrower than this fraction of image width | `0.03` |
 | `MIN_FACE_CONFIDENCE` | Drop low-confidence detections | `0.50` |

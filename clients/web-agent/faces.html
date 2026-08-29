@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GetME! — Unique faces</title>
+  <link rel="stylesheet" href="__BASE_PATH__/static/style.css" />
+  <script>window.GETME_BASE="__BASE_PATH__";</script>
+  <style>
+    .faces-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 10px;
+    }
+    .face-card {
+      margin: 0;
+      padding: 0;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #000;
+      /* Skip layout/paint for off-screen tiles while scrolling */
+      content-visibility: auto;
+      contain-intrinsic-size: 96px 118px;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .face-card:hover {
+      border-color: rgba(108, 140, 255, 0.45);
+    }
+    .face-card img {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      display: block;
+      background: #111;
+    }
+    .face-card .missing {
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .face-card figcaption {
+      padding: 4px 6px 6px;
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand">
+      <span class="logo">GetME!</span>
+      <span class="tag">Unique faces</span>
+    </header>
+    <div class="card" style="margin-bottom:20px">
+      <h1 style="margin:0 0 8px;font-size:24px">Detected people</h1>
+      <p class="lead" style="margin:0" id="summary">Loading…</p>
+      <p class="foot" style="margin-top:12px">
+        <a class="link" href="__BASE_PATH__/admin">Admin</a> ·
+        <a class="link" href="__BASE_PATH__/">Guest</a> ·
+        <a class="link" href="__BASE_PATH__/clusters">Full cluster details</a>
+      </p>
+    </div>
+    <div class="faces-grid" id="grid"></div>
+  </div>
+  <script>
+    const BASE = (window.GETME_BASE || "").replace(/\/$/, "");
+    async function load() {
+      const resp = await fetch(BASE + "/api/faces", { cache: "no-store" });
+      const data = await resp.json();
+      document.getElementById("summary").textContent =
+        data.count
+          ? `${data.count} unique faces — click one to see their photos`
+          : "No faces yet. Process a folder from Admin first.";
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+      if (!data.people.length) {
+        grid.innerHTML = '<p class="empty">Nothing to show.</p>';
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      for (const p of data.people) {
+        const fig = document.createElement("a");
+        fig.className = "face-card";
+        fig.href = BASE + "/person?id=" + encodeURIComponent(p.face_id);
+        if (p.image) {
+          const img = document.createElement("img");
+          img.src = p.image;
+          img.alt = p.face_id;
+          img.width = 96;
+          img.height = 96;
+          img.loading = "lazy";
+          img.decoding = "async";
+          img.fetchPriority = "low";
+          fig.appendChild(img);
+        } else {
+          const missing = document.createElement("div");
+          missing.className = "missing";
+          missing.textContent = "no crop";
+          fig.appendChild(missing);
+        }
+        const cap = document.createElement("figcaption");
+        cap.textContent = `${p.face_count} · ${p.photo_count} photos`;
+        fig.appendChild(cap);
+        frag.appendChild(fig);
+      }
+      grid.appendChild(frag);
+    }
+    load().catch((err) => {
+      document.getElementById("summary").textContent = "Failed to load faces: " + err;
+    });
+  </script>
+</body>
+</html>

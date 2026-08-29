@@ -173,6 +173,30 @@ def cluster_count() -> int:
     return int(row["c"])
 
 
+def list_cluster_summaries() -> list[dict]:
+    """face_id + counts only — no embedding payloads (fast faces grid)."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT c.face_id AS face_id,
+                   c.face_count AS face_count,
+                   COUNT(cf.file_id) AS photo_count
+            FROM clusters c
+            LEFT JOIN cluster_files cf ON cf.face_id = c.face_id
+            GROUP BY c.face_id
+            ORDER BY c.face_count DESC, c.face_id ASC;
+            """
+        ).fetchall()
+    return [
+        {
+            "face_id": r["face_id"],
+            "face_count": int(r["face_count"] or 0),
+            "photo_count": int(r["photo_count"] or 0),
+        }
+        for r in rows
+    ]
+
+
 # --- tokens -----------------------------------------------------------------
 
 def create_token(face_id: str) -> str:

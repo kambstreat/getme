@@ -1,6 +1,6 @@
 """Selfie matching plus live delivery helpers (thumbnails + ZIP).
 
-Photos are streamed from Drive on demand; nothing is stored locally.
+Photos are streamed from Drive (or local disk for test file_ids) on demand.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from PIL import Image, ImageOps
 
 from app.config import get_settings
 from app.database import db
-from app.services import drive_service, face_service
+from app.services import drive_service, face_service, local_photos
 
 THUMB_MAX = 400  # px, longest edge for gallery thumbnails
 
@@ -49,10 +49,16 @@ def gallery_items(face_id: str) -> list[dict]:
     return [{"file_id": f["file_id"], "name": f["file_name"] or f["file_id"]} for f in files]
 
 
-def make_thumbnail(file_id: str) -> bytes:
-    """Stream one photo from Drive and return a small JPEG thumbnail."""
+def _stream_photo(file_id: str) -> io.BytesIO:
+    if local_photos.is_local_id(file_id):
+        return local_photos.stream_file(file_id)
     service = drive_service.build_service()
-    buffer = drive_service.stream_file(service, file_id)
+    return drive_service.stream_file(service, file_id)
+
+
+def make_thumbnail(file_id: str) -> bytes:
+    """Load one photo (Drive or local) and return a small JPEG thumbnail."""
+    buffer = _stream_photo(file_id)
     image = Image.open(buffer)
     image = ImageOps.exif_transpose(image).convert("RGB")
     image.thumbnail((THUMB_MAX, THUMB_MAX))
@@ -63,16 +69,15 @@ def make_thumbnail(file_id: str) -> bytes:
 
 
 def stream_zip(face_id: str) -> Iterator[bytes]:
-    """Yield a ZIP archive of all matched photos, streamed from Drive."""
+    """Yield a ZIP archive of all matched photos (Drive or local)."""
     files = db.get_files_for_face(face_id)
-    service = drive_service.build_service()
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         used_names: set[str] = set()
         for f in files:
             try:
-                data = drive_service.stream_file(service, f["file_id"]).read()
+                data = _stream_photo(f["file_id"]).read()
             except Exception:
                 continue
             name = f["file_name"] or f"{f['file_id']}.jpg"

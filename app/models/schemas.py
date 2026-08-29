@@ -15,6 +15,17 @@ class ProcessRequest(BaseModel):
     )
 
 
+class LocalProcessRequest(BaseModel):
+    folder: str | None = Field(
+        default=None,
+        description="Absolute or project-relative path to a folder of test photos.",
+    )
+    incremental: bool = Field(
+        default=False,
+        description="If True, only process new local files not seen before.",
+    )
+
+
 class ProcessResponse(BaseModel):
     job_id: str
     status: str

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GetME! - Organizer</title>
+  <link rel="stylesheet" href="__BASE_PATH__/static/style.css" />
+  <script>window.GETME_BASE="__BASE_PATH__";</script>
+  <style>
+    .hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand">
+      <span class="logo">GetME!</span>
+      <span class="tag">Organizer</span>
+    </header>
+
+    <div class="card">
+      <h1>Process a test folder</h1>
+      <p class="lead">Point GetME! at a folder of event photos on this machine.
+        It detects faces, groups people, then guests can match from the guest page.</p>
+
+      <label for="folderPath">Photo folder</label>
+      <input type="text" id="folderPath" placeholder="/path/to/photos" />
+      <p class="hint" id="folderHint">Loading…</p>
+
+      <div class="row">
+        <button class="btn" id="processBtn">Process folder</button>
+        <a class="btn hidden" id="clustersBtn" href="__BASE_PATH__/faces">View faces</a>
+      </div>
+
+      <div class="progress" id="progress"><div id="progressBar"></div></div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <p class="foot">Powered by GetME! &middot; <a class="link" href="__BASE_PATH__/">Guest page</a> &middot; <a class="link" href="__BASE_PATH__/faces">Faces</a></p>
+  </div>
+
+  <script src="__BASE_PATH__/static/admin.js?v=7"></script>
+</body>
+</html>
