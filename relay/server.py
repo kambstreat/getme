@@ -26,7 +26,7 @@ REQUEST_TIMEOUT = float(os.environ.get("RELAY_REQUEST_TIMEOUT", "120"))
 GETME_REPO = os.environ.get("GETME_REPO", "https://github.com/kambstreat/getme.git")
 GETME_OAUTH_CLIENT_URL = os.environ.get("GETME_OAUTH_CLIENT_URL", "").strip()
 
-STATIC_DIR = Path(__file__).parent / "static"
+STATIC_DIR = Path(__file__).resolve().parent.parent / "clients" / "web-studio"
 
 store = RelayStore()
 store.set_public_origin(PUBLIC_ORIGIN)

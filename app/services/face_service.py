@@ -63,7 +63,7 @@ def extract_faces(image_bytes: io.BytesIO, file_id: str, file_name: str | None =
         return []
 
     faces: list[dict] = []
-    for rep in reps:
+    for idx, rep in enumerate(reps):
         facial_area = rep.get("facial_area", {}) or {}
         confidence = float(rep.get("face_confidence", rep.get("confidence", 1.0)) or 0.0)
 
@@ -79,12 +79,32 @@ def extract_faces(image_bytes: io.BytesIO, file_id: str, file_name: str | None =
             continue
         embedding = embedding / norm
 
+        # Tight crop for the clusters viewer (kept in memory until labeled).
+        crop_bytes: bytes | None = None
+        try:
+            x = max(0, int(facial_area.get("x", 0)))
+            y = max(0, int(facial_area.get("y", 0)))
+            w = max(1, int(facial_area.get("w", 0)))
+            h = max(1, int(facial_area.get("h", 0)))
+            x2 = min(img_w, x + w)
+            y2 = min(img_h, y + h)
+            if x2 > x and y2 > y:
+                crop = Image.fromarray(img[y:y2, x:x2]).convert("RGB")
+                crop.thumbnail((512, 512))
+                buf = io.BytesIO()
+                crop.save(buf, format="JPEG", quality=88)
+                crop_bytes = buf.getvalue()
+        except Exception:
+            crop_bytes = None
+
         faces.append(
             {
                 "file_id": file_id,
                 "file_name": file_name,
                 "embedding": embedding,
                 "quality": _quality_score(facial_area, confidence),
+                "face_index": idx,
+                "crop_jpeg": crop_bytes,
             }
         )
     return faces
@@ -188,29 +208,36 @@ def cluster_faces(all_faces: list[dict]) -> dict[str, dict]:
     def _file_ids_of(key: str) -> set[str]:
         return {all_faces[i]["file_id"] for i in raw[key]["_indices"]}
 
-    # Merge near-duplicate people (pose/angle splits). Cosine distance threshold
-    # eps=0.35 ⇒ similarity 0.65; use a slightly stricter merge bar.
-    # Never merge clusters that share a photo — two faces in one image are
-    # different people (blocks lookalike merges like neighbors in a group shot).
-    merge_sim = max(0.70, 1.0 - float(settings.cluster_eps) * 0.85)
+    # Merge near-duplicate people (pose/angle splits like looking-at-camera vs
+    # looking-down). Never merge clusters that share a photo — two faces in one
+    # image are different people.
+    merge_sim = float(settings.cluster_merge_sim)
     ids = list(raw.keys())
     centroids = {k: np.asarray(raw[k]["centroid"], dtype=np.float32) for k in ids}
     absorbed: set[str] = set()
-    for i, a in enumerate(ids):
-        if a in absorbed:
-            continue
-        for b in ids[i + 1 :]:
-            if b in absorbed:
+    # Multi-pass: after merging A+B, the new centroid may be close enough to C.
+    changed = True
+    while changed:
+        changed = False
+        active = [k for k in ids if k not in absorbed]
+        for i, a in enumerate(active):
+            if a in absorbed:
                 continue
-            sim = float(np.dot(centroids[a], centroids[b]))
-            if sim < merge_sim:
-                continue
-            if _file_ids_of(a) & _file_ids_of(b):
-                continue
-            combined = raw[a]["_indices"] + raw[b]["_indices"]
-            raw[a] = _build(combined)
-            centroids[a] = np.asarray(raw[a]["centroid"], dtype=np.float32)
-            absorbed.add(b)
+            for b in active[i + 1 :]:
+                if b in absorbed:
+                    continue
+                sim = float(np.dot(centroids[a], centroids[b]))
+                if sim < merge_sim:
+                    continue
+                if _file_ids_of(a) & _file_ids_of(b):
+                    continue
+                combined = raw[a]["_indices"] + raw[b]["_indices"]
+                raw[a] = _build(combined)
+                centroids[a] = np.asarray(raw[a]["centroid"], dtype=np.float32)
+                absorbed.add(b)
+                changed = True
+            if changed:
+                break
 
     clusters: dict[str, dict] = {}
     n = 0

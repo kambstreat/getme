@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GetME! — Person</title>
+  <link rel="stylesheet" href="__BASE_PATH__/static/style.css" />
+  <script>window.GETME_BASE="__BASE_PATH__";</script>
+  <style>
+    .person-head {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .person-head img {
+      width: 96px;
+      height: 96px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: #000;
+    }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .photo-grid a {
+      display: block;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: #000;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 11px;
+      content-visibility: auto;
+      contain-intrinsic-size: 160px 140px;
+    }
+    .photo-grid img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      display: block;
+      background: #111;
+    }
+    .photo-grid span {
+      display: block;
+      padding: 6px 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .empty { color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand">
+      <span class="logo">GetME!</span>
+      <span class="tag">Person</span>
+    </header>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="person-head">
+        <img id="avatar" alt="" class="hidden" />
+        <div>
+          <h1 style="margin:0 0 6px;font-size:22px" id="title">Loading…</h1>
+          <p class="lead" style="margin:0" id="summary"></p>
+        </div>
+      </div>
+      <p class="foot" style="margin-top:14px">
+        <a class="link" href="__BASE_PATH__/faces">← All faces</a> ·
+        <a class="link" href="__BASE_PATH__/admin">Admin</a>
+      </p>
+    </div>
+
+    <div class="photo-grid" id="grid"></div>
+  </div>
+
+  <script>
+    const BASE = (window.GETME_BASE || "").replace(/\/$/, "");
+    const faceId = new URLSearchParams(location.search).get("id");
+
+    async function load() {
+      if (!faceId) {
+        document.getElementById("title").textContent = "No person selected";
+        document.getElementById("summary").textContent = "Open someone from the Faces page.";
+        return;
+      }
+      const resp = await fetch(BASE + "/api/person/" + encodeURIComponent(faceId), {
+        cache: "no-store",
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        document.getElementById("title").textContent = "Not found";
+        document.getElementById("summary").textContent = data.detail || "Person not found.";
+        return;
+      }
+
+      document.getElementById("title").textContent = data.face_id;
+      document.getElementById("summary").textContent =
+        `${data.face_count} faces · ${data.photo_count} photos`;
+      const avatar = document.getElementById("avatar");
+      if (data.image) {
+        avatar.src = data.image;
+        avatar.classList.remove("hidden");
+      }
+
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+      const photos = (data.photos || []).filter((p) => p.preview_url || p.url);
+      if (!photos.length) {
+        grid.innerHTML = '<p class="empty">No local photos for this person.</p>';
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      for (const p of photos) {
+        const a = document.createElement("a");
+        a.href = p.url || p.preview_url;
+        a.target = "_blank";
+        a.rel = "noopener";
+        const img = document.createElement("img");
+        img.src = p.preview_url || p.url;
+        img.alt = p.name || "";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.width = 160;
+        img.height = 160;
+        a.appendChild(img);
+        const span = document.createElement("span");
+        span.textContent = p.name || "";
+        a.appendChild(span);
+        frag.appendChild(a);
+      }
+      grid.appendChild(frag);
+    }
+
+    load().catch((err) => {
+      document.getElementById("title").textContent = "Error";
+      document.getElementById("summary").textContent = String(err);
+    });
+  </script>
+</body>
+</html>

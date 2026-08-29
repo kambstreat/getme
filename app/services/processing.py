@@ -71,6 +71,42 @@ def start_job(drive_link: str, incremental: bool = False) -> str:
     return job_id
 
 
+def start_local_job(incremental: bool = False) -> str:
+    """Start a processing job over LOCAL_PHOTOS_DIR (no Google Drive)."""
+    job_id = uuid.uuid4().hex
+    with _lock:
+        _jobs[job_id] = JobStatus(job_id=job_id, status="pending")
+    thread = threading.Thread(
+        target=_run_local_job,
+        args=(job_id, incremental),
+        daemon=True,
+    )
+    thread.start()
+    return job_id
+
+
+def _finish_faces(job_id: str, all_faces: list[dict], processed_metadata: list[dict], incremental: bool) -> None:
+    from app.services import centroid_images
+
+    _update(job_id, status="clustering")
+    if incremental:
+        existing_clusters = db.load_clusters()
+        updated_clusters = face_service.cluster_faces_incremental(all_faces, existing_clusters)
+        db.save_clusters(updated_clusters)
+        clusters = updated_clusters
+    else:
+        centroid_images.clear_viewer_assets(clear_fullpics=True)
+        clusters = face_service.cluster_faces(all_faces)
+        db.reset_clusters()
+        db.save_clusters(clusters)
+    db.mark_files_processed(processed_metadata)
+    try:
+        centroid_images.write_labeled_crops(all_faces, clusters)
+    except Exception:
+        pass
+    _update(job_id, status="done", clusters=db.cluster_count())
+
+
 def _run_job(job_id: str, drive_link: str, incremental: bool = False) -> None:
     try:
         folder_id = drive_service.extract_folder_id(drive_link)
@@ -121,27 +157,60 @@ def _run_job(job_id: str, drive_link: str, incremental: bool = False) -> None:
                 pass
             _update(job_id, processed_files=i, faces_found=len(all_faces))
 
-        _update(job_id, status="clustering")
-        
-        if incremental:
-            # Load existing clusters and merge new faces
-            existing_clusters = db.load_clusters()
-            updated_clusters = face_service.cluster_faces_incremental(all_faces, existing_clusters)
-            # Save without resetting existing data
-            db.save_clusters(updated_clusters)
-        else:
-            # Full reset and re-cluster everything
-            clusters = face_service.cluster_faces(all_faces)
-            db.reset_clusters()
-            db.save_clusters(clusters)
-        
-        # Mark files as processed
-        db.mark_files_processed(processed_metadata)
-        
-        _update(job_id, status="done", clusters=db.cluster_count())
+        _finish_faces(job_id, all_faces, processed_metadata, incremental)
     except FileNotFoundError as exc:
         _update(job_id, status="error", error=f"Service account file missing: {exc}")
     except Exception as exc:  # noqa: BLE001 - surface any failure to the UI
+        _update(job_id, status="error", error=str(exc))
+
+
+def _run_local_job(job_id: str, incremental: bool = False) -> None:
+    from app.services import local_photos
+
+    try:
+        _update(job_id, status="listing")
+        images = local_photos.list_images()
+
+        if incremental:
+            processed_ids = db.get_processed_file_ids()
+            images_to_process = [img for img in images if img["id"] not in processed_ids]
+            _update(job_id, total_files=len(images_to_process), status="processing")
+            if not images_to_process:
+                _update(
+                    job_id,
+                    status="done",
+                    error="No new images to process.",
+                    clusters=db.cluster_count(),
+                )
+                return
+        else:
+            images_to_process = images
+            _update(job_id, total_files=len(images_to_process), status="processing")
+
+        if not images_to_process:
+            _update(
+                job_id,
+                status="error",
+                error=f"No images found in {local_photos.resolved_dir()}.",
+            )
+            return
+
+        all_faces: list[dict] = []
+        processed_metadata: list[dict] = []
+        for i, meta in enumerate(images_to_process, start=1):
+            try:
+                buffer = local_photos.stream_file(meta["id"])
+                faces = face_service.extract_faces(buffer, meta["id"], meta.get("name"))
+                all_faces.extend(faces)
+                processed_metadata.append(meta)
+            except Exception:
+                pass
+            _update(job_id, processed_files=i, faces_found=len(all_faces))
+
+        _finish_faces(job_id, all_faces, processed_metadata, incremental)
+        # Clusters viewer: serve full photos from data/fullpics
+        local_photos.copy_to_fullpics([m["id"] for m in processed_metadata])
+    except Exception as exc:  # noqa: BLE001
         _update(job_id, status="error", error=str(exc))
 
 
